@@ -14,10 +14,10 @@ export async function loadPortal(event,range='today') {
  const {data:connection}=await sb.from('portal_provider_connections').select('node_id,provider,provider_installation_id').eq('node_id',node.id).eq('active',true).maybeSingle();
  let telemetry={status:'not_configured',snapshot:null,history:null,devices:[],verified:false};
  if(connection?.provider==='victron') {
-  try {telemetry=await readInstallation(config(event),connection,range);}catch{telemetry={...telemetry,status:'unavailable'};}
+  try {telemetry=await readInstallation(config(event),connection,range);}catch(error){telemetry={...telemetry,status:error.kind==='installation_selection_required'?'awaiting_installation':'unavailable'};}
  }
  // Uncommissioned mappings must never be represented as validated client data.
- if(!telemetry.verified && telemetry.status!=='not_configured' && telemetry.status!=='unavailable')telemetry={...telemetry,status:'awaiting_verification',snapshot:null,history:null};
+ if(!telemetry.verified && ['connected','partial'].includes(telemetry.status))telemetry={...telemetry,status:'awaiting_verification',snapshot:null,history:null};
  // Persisted, commissioned readings remain useful during provider outages,
  // provided their original reporting times and stale status remain visible.
  const c=config(event);

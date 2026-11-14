@@ -1,0 +1,105 @@
+/* Client energy dashboard: sage surfaces, clear measurements and useful diagrams. */
+.portal-app{--paper:#eef3ec;--ink:#253b2d;--muted:#5d7061;--line:#dae4d7;--lime:#a9dc60;background:var(--paper)}
+.portal-app .portal-main{background:#eef3ec}
+.portal-app .portal-topbar{background:#f8faf6;height:74px}
+.portal-app .portal-content{max-width:1510px;padding:32px clamp(20px,3vw,48px) 42px}
+.portal-app .portal-sidebar{background:#f8faf6;border-color:#dce5d8}
+.portal-app .portal-sidebar nav>a{font-size:13px;padding:15px 14px}
+.portal-app .portal-sidebar nav>a.active{background:#dceccf;color:#284923}
+.portal-app .sidebar-purpose{background:#eaf1e4;border-color:#dce5d5}
+.portal-app .panel{border:1px solid #e3eadf;border-radius:23px;background:#f9fbf7;padding:25px}
+.portal-app .panel-heading{margin-bottom:19px;align-items:start}
+.portal-app .panel-heading .overline,.portal-app .overline{font-size:10px;color:#60735c;letter-spacing:1.2px}
+.portal-app .panel h2{font-size:19px;letter-spacing:-.6px;color:#253b2d}
+.portal-app .panel-tag{font-size:11px;color:#53694f;padding:7px 10px;border-radius:8px;background:#eef4e9;border:0}
+.portal-app .page-heading h1{font-size:clamp(24px,2.2vw,32px);font-weight:700}
+.portal-app .breadcrumb{font-size:10px;color:#596e54}
+.portal-app .connection-line{font-size:11px;flex-wrap:wrap;color:#5f7258;margin-bottom:24px}
+.portal-app .connection-badge{font-size:11px;border-radius:20px;padding:8px 12px}
+.portal-app .connection-badge.connected{background:#dfeecd;color:#315b2c}
+.portal-app .refresh-button{font-size:12px;padding:11px 15px;border-radius:12px}
+.energy-story-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr);gap:22px;margin-bottom:22px}
+.portal-app .home-energy-panel{background:#e3eddd;border-color:#d9e5d2;overflow:hidden;position:relative}
+.home-energy-panel .panel-heading{position:relative;z-index:1}
+.home-energy-scene{display:grid;grid-template-columns:1fr 1.1fr;align-items:center;min-height:216px;margin-top:-16px}
+.daily-energy-number{position:relative;z-index:1;padding-bottom:18px}
+.daily-energy-number>span{display:block;font-size:13px;color:#45613e;margin-bottom:8px}
+.daily-energy-number strong{display:block;font-size:clamp(38px,3.5vw,57px);letter-spacing:-2.8px;font-weight:500;line-height:1.2;white-space:nowrap}
+.daily-energy-number strong small{font-size:21px;font-weight:500;letter-spacing:-.8px}
+.portal-app .daily-energy-number p{font-size:12px;line-height:1.6;color:#536d4c;max-width:185px;margin-top:10px}
+.solar-home-art{width:calc(100% + 32px);max-width:380px;justify-self:end;margin-left:-20px;min-width:0}
+.home-daily-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid #f6faf1;background:#f7faf3b8;border-radius:16px;padding:18px 16px;gap:12px}
+.home-daily-summary>div+div{border-left:1px solid #dce5d5;padding-left:15px}
+.home-daily-summary span{display:flex;gap:6px;align-items:center;font-size:11px;color:#4e6647;line-height:1.6;margin-bottom:9px}
+.home-daily-summary strong{font-size:23px;letter-spacing:-1px;font-weight:600;white-space:nowrap}
+.home-daily-summary strong small{font-size:12px;letter-spacing:0;color:#526a49;font-weight:500}
+.portal-app .energy-help{font-size:11px;line-height:1.7;color:#536a4a;margin-top:13px;max-width:510px}
+.storage-panel .storage-icon{background:#edf3e7;border-radius:11px;padding:9px;display:flex;color:#5a734b}
+.storage-gauge{max-width:260px;margin:10px auto 0;position:relative}
+.storage-gauge>svg{display:block;width:100%;overflow:visible}
+.storage-gauge path{fill:none;stroke-width:7;stroke-linecap:round}
+.storage-gauge .gauge-track{stroke:#dde5d9}
+.storage-gauge .gauge-fill{stroke:#91c747}
+.gauge-reading{position:absolute;left:0;right:0;bottom:7px;display:flex;align-items:center;flex-direction:column;gap:5px}
+.gauge-reading>span{font-size:11px;color:#607455}
+.gauge-reading strong{font-size:46px;line-height:1.1;font-weight:500;letter-spacing:-2px}
+.gauge-reading strong small{font-size:23px;margin-left:3px}
+.gauge-reading .battery-state{font-size:11px;color:#3d6530}
+.storage-scale{display:flex;justify-content:space-between;font-size:10px;max-width:230px;margin:0 auto 20px;color:#63775a}
+.storage-segments{display:flex;gap:4px;height:19px;margin:0 0 18px}
+.storage-segments i{background:#e0e9d9;flex:1;border-radius:3px}
+.storage-segments i.filled{background:#abda70}
+.storage-power{border-top:1px solid #e1e8dc;padding-top:16px;display:flex;gap:12px;align-items:center;justify-content:space-between;font-size:12px}
+.storage-power>span{display:flex;align-items:center;gap:7px;color:#527047}
+.storage-power strong{font-size:16px;font-weight:600;white-space:nowrap}
+.portal-app .storage-note{margin-top:12px;font-size:10px;color:#617558;line-height:1.7}
+.instant-readings{display:grid;grid-template-columns:.9fr 1fr 1fr 1fr;align-items:center;gap:22px;padding:22px 25px;background:#f9fbf7;border:1px solid #e3eadf;border-radius:19px;margin-bottom:22px}
+.instant-caption>span:last-child{display:block;margin-top:6px;font-size:12px;color:#607558;line-height:1.6}
+.instant-value{display:flex;gap:12px;align-items:center;border-left:1px solid #dfe8da;padding-left:22px}
+.instant-symbol{width:39px;height:39px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#e9f2df;color:#618241;flex-shrink:0}
+.instant-value>div>span{display:block;font-size:11px;color:#536e49;margin-bottom:4px}
+.instant-value strong{display:block;font-size:26px;font-weight:500;letter-spacing:-1px;white-space:nowrap}
+.instant-value strong small{font-size:13px;font-weight:400;letter-spacing:0}
+.instant-value>div>small{font-size:10px;display:block;margin-top:6px;color:#65795b}
+.portal-app .instant-readings>p{font-size:11px;line-height:1.8;color:#62765a}
+.visual-insights-grid{display:grid;grid-template-columns:minmax(300px,1fr) minmax(0,1.45fr);gap:22px;margin-bottom:22px;align-items:stretch}
+.visual-insights-grid .history-panel{margin-bottom:0}
+.home-network{position:relative;max-width:400px;margin:0 auto;min-height:273px}
+.network-lines{position:absolute;inset:0;width:100%;height:250px;z-index:0;stroke:#a8ce80;stroke-width:1.3;fill:none}
+.network-lines circle{fill:#a8ce80;stroke:none}
+.network-node{display:flex;flex-direction:column;align-items:center;position:relative;text-align:center;z-index:1;gap:5px;min-width:0}
+.network-icon{width:46px;height:46px;border:1px solid #c5d8ae;background:#f7faf2;border-radius:50%;display:flex;justify-content:center;align-items:center;color:#678744;margin-bottom:5px}
+.network-icon.sun{background:#f9f2d8;color:#ba8e2f;border-color:#efe3b9}
+.network-node>span:not(.network-icon){font-size:11px;color:#546f48}
+.network-node strong{font-size:16px;font-weight:600;letter-spacing:-.5px;white-space:nowrap}
+.network-node small{font-size:10px;line-height:1.5;color:#627a56}
+.network-leaves{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:64px}
+.portal-app .network-note{font-size:10px;color:#637957;line-height:1.7;margin-top:15px}
+.portal-app .chart-legend{font-size:11px;color:#526d47;gap:16px;flex-wrap:wrap;line-height:1.5}
+.portal-app .chart-legend small{font-size:10px;color:#627957}
+.portal-app .energy-chart{height:220px;margin-top:30px}
+.portal-app .chart-gridline{border-color:#dfe8d9}
+.portal-app .solar-key,.portal-app .solar-bar{background:#a4d567}
+.portal-app .usage-key,.portal-app .usage-bar{background:#537657}
+.portal-app .bar-pair i{border-radius:4px 4px 1px 1px;max-width:12px}
+.portal-app .chart-y,.portal-app .chart-x{font-size:10px;color:#59734e}
+.portal-app .chart-detail{font-size:11px;color:#5f7553;line-height:1.7;min-height:53px}
+.portal-app .bottom-panels{gap:22px}
+.portal-app .community-note{background:#dfeacd;border-color:#d7e2c8;border-radius:23px;padding:27px}
+.portal-app .community-note h2{color:#35552c}
+.portal-app .community-note p{font-size:12px;color:#536c45}
+.portal-app .community-note a{font-size:12px;color:#385f2d}
+.portal-app .panel-link,.portal-app .quiet-link{font-size:12px;color:#416b34!important}
+.portal-app .health-row{font-size:12px}
+.portal-app .portal-footer{font-size:11px;color:#5f7555;background:#eef3ec}
+.portal-app .notice{border-radius:15px}
+.portal-app .notice strong{font-size:13px}
+.portal-app .notice p{font-size:12px}
+.portal-app .period-tabs{background:#dde9d4;border-radius:12px}
+.portal-app .period-tabs a{font-size:12px;padding:10px 16px}
+.portal-app .period-tabs a.active{background:#addd70;box-shadow:none;color:#2b4c24}
+@media(min-width:1500px){.home-energy-scene{min-height:235px}.storage-gauge{margin-top:20px}.storage-segments{margin-top:8px}}
+@media(max-width:1200px){.energy-story-grid{grid-template-columns:minmax(0,1.4fr) minmax(260px,1fr)}.home-energy-scene{grid-template-columns:1fr;min-height:195px;position:relative}.daily-energy-number{align-self:start;padding-top:16px;pointer-events:none}.solar-home-art{position:absolute;right:-14px;bottom:0;width:61%;opacity:.85}.daily-energy-number strong{font-size:42px}.daily-energy-number p{max-width:140px}.instant-readings{grid-template-columns:.8fr 1fr 1fr}.portal-app .instant-readings>p{grid-column:1/-1;border-top:1px solid #e0e8da;padding-top:12px}.visual-insights-grid{grid-template-columns:1fr}.home-network{max-width:460px}.network-note{max-width:600px}.visual-insights-grid .energy-chart{height:230px}.home-daily-summary{padding:16px 11px;gap:8px}.home-daily-summary>div+div{padding-left:9px}.home-daily-summary strong{font-size:21px}}
+@media(max-width:950px){.portal-app .portal-content{padding:25px 22px 32px}.portal-app .portal-topbar{padding:0 22px}.portal-app .energy-story-grid{grid-template-columns:minmax(0,1.5fr) minmax(250px,1fr)}.solar-home-art{width:60%}}
+@media(max-width:700px){.portal-app .portal-content{padding:23px 16px 30px}.portal-app .portal-topbar{height:64px;padding:0 17px}.portal-app .panel{padding:21px 18px;border-radius:21px}.portal-app .page-heading{align-items:start;margin-bottom:15px;gap:10px}.portal-app .page-heading h1{font-size:25px;letter-spacing:-.8px;line-height:1.3}.portal-app .page-heading p{font-size:11px}.portal-app .breadcrumb{font-size:9px;letter-spacing:1px;margin-bottom:10px}.portal-app .refresh-button{font-size:11px;padding:9px}.portal-app .refresh-button svg{width:14px}.portal-app .connection-line{font-size:10px;gap:10px;margin-bottom:20px}.portal-app .connection-badge{font-size:10px}.portal-app .energy-story-grid{grid-template-columns:1fr;gap:17px;margin-bottom:17px}.portal-app .panel h2{font-size:19px}.portal-app .panel-heading .overline{font-size:9px;letter-spacing:1px}.portal-app .home-energy-scene{min-height:222px;margin-top:-7px}.portal-app .solar-home-art{max-width:300px;width:71%;right:-14px;bottom:-8px;opacity:1}.daily-energy-number strong{font-size:46px}.daily-energy-number strong small{font-size:20px}.portal-app .daily-energy-number p{font-size:11px;max-width:135px}.daily-energy-number>span{font-size:12px}.home-daily-summary{padding:16px 12px;gap:9px}.home-daily-summary span{font-size:10px;gap:5px}.home-daily-summary strong{font-size:23px}.home-daily-summary strong small{font-size:10px}.portal-app .energy-help{font-size:10px}.portal-app .storage-panel{padding:22px}.storage-gauge{max-width:270px;margin-top:0}.storage-panel .panel-heading{margin-bottom:2px}.storage-scale{max-width:245px;margin-bottom:17px}.storage-segments{height:24px;gap:5px}.gauge-reading strong{font-size:49px}.gauge-reading>span{font-size:12px}.gauge-reading .battery-state{font-size:12px}.storage-note{text-align:center}.instant-readings{grid-template-columns:1fr 1fr;padding:20px 18px;gap:19px 12px;margin-bottom:17px;border-radius:20px}.instant-caption{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px}.instant-caption>span:last-child{margin:0;font-size:11px}.instant-value{border-left:0;padding:0;gap:9px}.instant-value+.instant-value{border-left:1px solid #dce6d5;padding-left:12px}.instant-symbol{width:33px;height:36px;border-radius:10px}.instant-value strong{font-size:27px}.instant-value>div>span{font-size:11px}.portal-app .instant-readings>p{font-size:10px}.visual-insights-grid{gap:17px;margin-bottom:17px}.portal-app .network-node strong{font-size:16px}.home-network{min-height:270px}.network-leaves{gap:5px}.portal-app .network-note{font-size:10px}.portal-app .chart-legend{font-size:10px;gap:13px}.portal-app .chart-legend small{font-size:9px}.portal-app .chart-x,.portal-app .chart-y{font-size:9px}.portal-app .energy-chart{gap:8px}.portal-app .chart-bars{gap:4px}.portal-app .bar-pair{gap:2px}.portal-app .chart-detail{font-size:10px;gap:8px 13px}.portal-app .quiet-link{font-size:11px;white-space:normal;text-align:right}.portal-app .bottom-panels{gap:17px}.portal-app .portal-footer{font-size:10px;padding:20px 16px;flex-wrap:wrap}.portal-app .period-tabs a{font-size:11px;padding:10px 14px}}
+@media(max-width:370px){.portal-app .panel{padding:19px 15px}.portal-app .solar-home-art{width:69%;right:-20px}.home-daily-summary{padding:14px 9px;gap:6px}.home-daily-summary strong{font-size:21px}.home-daily-summary>div+div{padding-left:7px}.home-daily-summary span{font-size:9px}.daily-energy-number strong{font-size:41px}.instant-symbol{display:none}.instant-value+.instant-value{padding-left:17px}.network-node strong{font-size:14px!important}.network-node>span:not(.network-icon){font-size:10px}.network-node small{font-size:9px}.portal-app .panel h2{font-size:18px}}
