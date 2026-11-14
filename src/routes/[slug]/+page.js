@@ -1,4 +1,1 @@
-import { error } from '@sveltejs/kit';
-const slugs = ['how-it-works','our-mission','community','get-involved'];
-export function entries(){return slugs.map(slug=>({slug}))}
-export function load({params}){if(!slugs.includes(params.slug))error(404,'Page not found');return {slug:params.slug}}
+import {error,redirect} from '@sveltejs/kit';const slugs=['product','impact','about','team','contact'];const aliases={'how-it-works':'product','our-mission':'about','community':'impact','get-involved':'contact'};export function entries(){return [...slugs,...Object.keys(aliases)].map(slug=>({slug}))}export function load({params}){if(aliases[params.slug])redirect(308,'/'+aliases[params.slug]);if(!slugs.includes(params.slug))error(404,'Page not found');return {slug:params.slug}}

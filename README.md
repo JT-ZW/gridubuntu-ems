@@ -1,17 +1,23 @@
-# GridUbuntu
+﻿# Grid Ubuntu — SvelteKit migration
 
-A five-page SvelteKit 5 marketing website for a Zimbabwean social enterprise.
+The marketing website reproduces the existing Grid Ubuntu design using native Svelte components and the original stylesheet, fonts, imagery, product screenshots, and team photographs.
 
-## Development
+## Run
 
-Run `npm install`, then `npm run dev`. Run `npm run check` for Svelte diagnostics and `npm run build` for a prerendered production site in `build/`.
+`npm install`
+`npm run dev`
+
+## Validate and build
+
+`npm run check`
+`npm run build`
+
+The static production output is generated in `build/`.
 
 ## Pages
 
-Home, How it works, Our mission, Community, and Get involved.
+Home `/`, Product `/product`, Impact `/impact`, About `/about`, Team `/team`, Contact `/contact`.
 
-The enquiry form validates fields and downloads a text enquiry locally. Connect a verified contact address or backend before accepting online enquiries. No messages are submitted by the current form.
+Earlier page URLs redirect to their corresponding original pages. Household Portal links lead to the existing operational website. Product screens are screenshots, not a connected EMS. The contact form validates inputs and opens an email draft addressed to the contact published on the original website; visitors review and send it in their email app. Live metrics are not connected in this marketing build.
 
-Brand logo and solar photograph are drawn from the previous GridUbuntu website. Photograph: https://unsplash.com/photos/1509391366360-2e959784a276 (source asset URL retained from the original website).
-
-The website presents the supplied EMS concept; it does not connect to energy hardware or claim live deployments.
+Original design and assets: https://gridubuntu-frontend.fly.dev/
