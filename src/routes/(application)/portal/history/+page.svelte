@@ -1,0 +1,1 @@
+<script>import HistoryView from '$lib/components/HistoryView.svelte';let {data}=$props();</script><svelte:head><title>Energy history · GridUbuntu</title></svelte:head><HistoryView {data} range={data.range}/>

@@ -1,23 +1,31 @@
-﻿# Grid Ubuntu — SvelteKit migration
+﻿# GridUbuntu — Website and client energy portal
 
-The marketing website reproduces the existing Grid Ubuntu design using native Svelte components and the original stylesheet, fonts, imagery, product screenshots, and team photographs.
+SvelteKit marketing website and invitation-only client application. The original marketing design, fonts, imagery, screenshots, and team profiles are preserved.
 
-## Run
+## Development
 
 `npm install`
 `npm run dev`
 
-## Validate and build
+Private settings belong in `.env`; see `.env.example` for blank configuration fields. Never commit credentials.
+
+## Validation
 
 `npm run check`
+`npm test`
 `npm run build`
+`npm run test:worker`
 
-The static production output is generated in `build/`.
+The production Worker is generated in `dist/server/index.js`, with static assets in `dist/client`.
 
-## Pages
+## Client application
 
-Home `/`, Product `/product`, Impact `/impact`, About `/about`, Team `/team`, Contact `/contact`.
+`/login`, `/portal`, `/portal/history`, `/portal/system`, and `/portal/account`.
 
-Earlier page URLs redirect to their corresponding original pages. Household Portal links lead to the existing operational website. Product screens are screenshots, not a connected EMS. The contact form validates inputs and opens an email draft addressed to the contact published on the original website; visitors review and send it in their email app. Live metrics are not connected in this marketing build.
+`/portal-preview` contains explicitly labelled illustrative fixtures. It never reads live residence data. Disable `PORTAL_PREVIEW_ENABLED` after review.
 
-Original design and assets: https://gridubuntu-frontend.fly.dev/
+See [client portal setup](docs/CLIENT_PORTAL_SETUP.md) for Supabase database migration, invitations, pilot assignment, Victron commissioning, historical ingestion, and deployment to `app.gridubuntu.com`.
+
+The real pilot token is not included. Hardware readings must be reconciled with VRM before the connection is marked verified. Marketing product screens remain screenshots; the contact form opens a draft for the visitor to send.
+
+Original website design: https://gridubuntu-frontend.fly.dev/

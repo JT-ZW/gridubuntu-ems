@@ -1,0 +1,2 @@
+import {error} from '@sveltejs/kit';import {authConfigured,config} from '$lib/server/config';import {previewData} from '$lib/preview';
+export function load(event){if(authConfigured(event)&&config(event).PORTAL_PREVIEW_ENABLED!=='true')error(404,'Page not found');const view=event.url.searchParams.get('view')||'overview';return {preview:previewData(),view:['overview','history','system','account'].includes(view)?view:'overview'};}
