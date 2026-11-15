@@ -1,1 +1,1 @@
-<script>import AccountView from '$lib/components/AccountView.svelte';let {data}=$props();</script><svelte:head><title>Account & help · GridUbuntu</title></svelte:head><AccountView email={data.user.email}/>
+<script>import AccountView from '$lib/components/AccountView.svelte';let {data}=$props();</script><svelte:head><title>Account & help · GridUbuntu</title></svelte:head><AccountView email={data.user.email} supportEmail={data.supportEmail}/>

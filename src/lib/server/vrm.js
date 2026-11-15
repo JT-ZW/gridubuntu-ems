@@ -12,14 +12,17 @@ export async function vrmGet(token,path,params={},fetcher=fetch) {
  let data;try{data=await response.json();}catch{throw new VrmError('invalid_response');}
  if(data.success===false)throw new VrmError('provider_error');return data;
 }
-export async function discoverInstallation(token,fetcher=fetch) {
+export async function listInstallations(token,fetcher=fetch) {
  const me=await vrmGet(token,'/users/me',{},fetcher);
  const userId=me.user?.id ?? me.user?.idUser ?? me.records?.idUser ?? me.idUser;
  if(!/^\d+$/.test(String(userId)))throw new VrmError('discovery_unavailable');
  const result=await vrmGet(token,`/users/${userId}/installations`,{},fetcher);
- const sites=Array.isArray(result.records)?result.records:[];
+ return (Array.isArray(result.records)?result.records:[]).filter(s=>/^\d+$/.test(String(s.idSite))).map(s=>({id:String(s.idSite),name:String(s.name||'Unnamed installation')}));
+}
+export async function discoverInstallation(token,fetcher=fetch) {
+ const sites=await listInstallations(token,fetcher);
  if(sites.length!==1)throw new VrmError(sites.length?'installation_selection_required':'no_installations');
- const id=sites[0].idSite;if(!/^\d+$/.test(String(id)))throw new VrmError('invalid_response');return String(id);
+ return sites[0].id;
 }
 // Use unambiguous system-level DBus paths, never a random device's similarly
 // named attribute. Unrecognised/missing paths remain null until commissioning.
@@ -51,16 +54,17 @@ export function normalizeDiagnostics(payload,now=Date.now()) {
 export function normalizeStats(payload) {
  const records=payload.records || {};const totals=payload.totals || {};
  function series(key){return Array.isArray(records[key])?records[key].filter(p=>Array.isArray(p)&&timestamp(p[0])).map(p=>({time:timestamp(p[0]),value:numeric(p[1])})):[];}
- return {solar:series('total_solar_yield'),consumption:series('total_consumption'),totals:{solar:numeric(totals.total_solar_yield),consumption:numeric(totals.total_consumption),gridImport:numeric(totals.grid_history_from),gridExport:numeric(totals.grid_history_to)}};
+ return {solar:series('total_solar_yield'),consumption:series('total_consumption'),gridImport:series('grid_history_from'),gridExport:series('grid_history_to'),totals:{solar:numeric(totals.total_solar_yield),consumption:numeric(totals.total_consumption),gridImport:numeric(totals.grid_history_from),gridExport:numeric(totals.grid_history_to)}};
 }
 const cache=new Map();
 export async function readInstallation(c,connection,range='today') {
- const token=c.VICTRON_VRM_ACCESS_TOKEN;
- if(!token || connection.node_id!==c.VICTRON_PILOT_NODE_ID)return {status:'not_configured',snapshot:null,history:null,devices:[]};
- const explicit=connection.provider_installation_id || c.VICTRON_VRM_INSTALLATION_ID;
+ const token=c.NODE_ACCESS_TOKEN || (connection.node_id===c.VICTRON_PILOT_NODE_ID?c.VICTRON_VRM_ACCESS_TOKEN:null);
+ if(!token)return {status:'not_configured',snapshot:null,history:null,devices:[]};
+ if(connection.active===false)return {status:'paused',snapshot:null,history:null,devices:[]};
+ const explicit=connection.provider_installation_id || (connection.node_id===c.VICTRON_PILOT_NODE_ID?c.VICTRON_VRM_INSTALLATION_ID:null);
  const id=explicit || await discoverInstallation(token);
  if(!/^\d+$/.test(String(id)))throw new VrmError('invalid_installation');
- const key=connection.node_id+':'+id+':'+range;
+ const key=connection.node_id+':'+id+':'+(connection.revision||0)+':'+(connection.verified_at||'unverified')+':'+range;
  const existing=cache.get(key);if(existing && existing.until>Date.now())return existing.data;
  const bounds=rangeBounds(range);
  const responses=await Promise.allSettled([
@@ -73,6 +77,6 @@ export async function readInstallation(c,connection,range='today') {
  const devices=responses[2].status==='fulfilled'?(responses[2].value.records?.devices || []).map(d=>({name:d.customName || d.productName || d.name || 'Victron device',firmware:d.firmwareVersion || null})):[];
  const allFailed=responses.every(r=>r.status==='rejected');
  const failures=responses.filter(r=>r.status==='rejected').map(r=>r.reason.kind || 'provider_error');
- const data={status:allFailed?'unavailable':failures.length?'partial':'connected',snapshot,history,devices,failures,verified:c.VICTRON_MAPPING_VERIFIED==='true',fetchedAt:new Date().toISOString()};
+ const data={status:allFailed?'unavailable':failures.length?'partial':'connected',snapshot,history,devices,failures,verified:Boolean(connection.verified_at),fetchedAt:new Date().toISOString()};
  if(cache.size>100)cache.clear();cache.set(key,{until:Date.now()+60000,data});return data;
 }

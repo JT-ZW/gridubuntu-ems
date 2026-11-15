@@ -1,0 +1,2 @@
+import {error} from '@sveltejs/kit';import {config,authConfigured} from '$lib/server/config';import {adminPreview} from '$lib/admin-preview';import {adminSections} from '$lib/admin-domain';
+export function load(event){if(authConfigured(event)&&config(event).PORTAL_PREVIEW_ENABLED!=='true')error(404,'Page not found.');const view=event.url.searchParams.get('view');return adminPreview(adminSections.includes(view)?view:'overview');}

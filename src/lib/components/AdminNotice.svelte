@@ -1,0 +1,2 @@
+<script>let {form}=$props();</script>
+{#if form?.message}<div class="admin-notice" class:failure={!form.success} role={form.success?'status':'alert'}><strong>{form.success?'Saved':'Please review'}</strong><p>{form.message}</p>{#if form.activationLink}<label>Private activation link<input readonly value={form.activationLink} aria-label="Private activation link" onclick={e=>e.currentTarget.select()}/></label><small>This link grants account activation or recovery. Share privately; it expires under your Supabase Auth settings.</small>{/if}</div>{/if}

@@ -1,5 +1,7 @@
 # Supabase review — 14 November 2026
 
+**Update, 15 November:** The admin implementation now applies the tested legacy settings correction and removes excess browser privileges. It also adds active account revocation, encrypted server-only per-node credentials, per-connection commissioning, grid intervals, baseline forecasting, draft sharing policies and audited administrative mutations. See [ADMIN_PORTAL.md](ADMIN_PORTAL.md). The original findings below describe the audit state before those changes; the anonymous incident-read policy remains unchanged.
+
 ## Decision
 
 The existing Supabase project can support the new EMS. Its legacy schema should not become the new portal's data model unchanged. Keep the new `portal_` model as the pilot's source of truth, harden legacy access, then migrate verified legacy data deliberately. A new Supabase project is optional, not a technical requirement.

@@ -1,0 +1,16 @@
+import pg from 'pg';import fs from 'node:fs';import {randomBytes} from 'node:crypto';import {createClient} from '@supabase/supabase-js';import {sealSecret} from '../src/lib/server/secrets.js';
+const [email]=process.argv.slice(2);if(!email||!/^\S+@\S+\.\S+$/.test(email))throw new Error('Pass the administrator email.');
+let content=fs.readFileSync('.env','utf8');let key=process.env.NODE_CREDENTIAL_ENCRYPTION_KEY;if(!key){key=randomBytes(32).toString('base64');content+='\n# Private AES-256 key for encrypted per-node provider credentials. Back up securely.\nNODE_CREDENTIAL_ENCRYPTION_KEY='+key+'\n';fs.writeFileSync('.env',content);}
+if(!process.env.INGESTION_SECRET){const entry='INGESTION_SECRET='+randomBytes(32).toString('hex');content=/^INGESTION_SECRET=.*$/m.test(content)?content.replace(/^INGESTION_SECRET=.*$/m,entry):content+'\n'+entry+'\n';fs.writeFileSync('.env',content);}
+const sb=createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+const db=new pg.Client({connectionString:process.env.SUPABASE_DB_URL,connectionTimeoutMillis:15000});
+try{await db.connect();let user=(await db.query('select id,invited_at,email_confirmed_at from auth.users where lower(email)=lower($1)',[email])).rows[0];let invitation;
+ if(!user){const {data,error}=await sb.auth.admin.generateLink({type:'invite',email,options:{data:{full_name:'GridUbuntu Administrator'}}});if(error||!data.user?.id)throw new Error('admin_invitation_failed');user=data.user;invitation=data.properties?.hashed_token;}
+ if(!user.invited_at)throw new Error('Existing account is not an invited account; inspect before changing its role.');
+ await db.query('begin');
+ await db.query("insert into public.portal_profiles(id,full_name,role,email,active) values($1,'GridUbuntu Administrator','admin',$2,true) on conflict(id) do update set role='admin',active=true,email=excluded.email",[user.id,email]);
+ if(process.env.VICTRON_PILOT_NODE_ID&&process.env.VICTRON_VRM_ACCESS_TOKEN){const cipher=await sealSecret(process.env.VICTRON_VRM_ACCESS_TOKEN,process.env.VICTRON_PILOT_NODE_ID,key);await db.query('insert into public.portal_connection_secrets(node_id,ciphertext) values($1,$2) on conflict(node_id) do nothing',[process.env.VICTRON_PILOT_NODE_ID,cipher]);}
+ await db.query("insert into public.portal_audit_events(actor_id,action,details) values($1,'admin.bootstrap',jsonb_build_object('method','authorized local setup'))",[user.id]);await db.query('commit');
+ if(invitation){const origin=process.env.ADMIN_INVITATION_ORIGIN||process.env.APP_ORIGIN;fs.mkdirSync('.private',{recursive:true});fs.writeFileSync('.private/admin-invitation.txt','Private GridUbuntu administrator activation link. No email sent.\n\n'+origin+'/auth/confirm?token_hash='+encodeURIComponent(invitation)+'&type=invite\n');}
+ console.log('Administrator registered. Pilot token encrypted server-side. '+(invitation?'Private activation link saved in .private/admin-invitation.txt; no email sent.':'Existing invited administrator account preserved.'));
+}catch(error){await db.query('rollback').catch(()=>{});console.error('Admin setup failed:',error.code||error.message);process.exitCode=1;}finally{await db.end();}

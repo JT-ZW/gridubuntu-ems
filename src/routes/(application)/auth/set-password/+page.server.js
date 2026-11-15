@@ -7,5 +7,5 @@ export const actions={default:async(event)=>{
  if(password!==form.get('confirmation'))return fail(400,{message:'The passwords do not match.'});
  const {error}=await event.locals.supabase.auth.updateUser({password});
  if(error)return fail(400,{message:'Your password could not be updated. Try again or request a new recovery link.'});
- redirect(303,'/portal');
+ redirect(303,event.locals.portalRole==='admin'?'/admin':'/portal');
 }};
