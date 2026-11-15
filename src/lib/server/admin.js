@@ -8,6 +8,8 @@ import {adminSections,uuidPattern,buildAlerts,completeConsumptionDays,demandBase
 import {rangeBounds} from '../energy.js';
 import {simulationEnabled,simulatedTelemetry,simulatedIntervals} from '../simulation.js';
 import {coordinates} from '../coordinates.js';
+import {clientNodes} from '../client-details.js';
+import {notifyEnquiry} from './contact-email.js';
 import {harareDate,boundedNumber} from '../manual-energy.js';
 import {prepareVictronNode} from './onboarding.js';
 
@@ -30,6 +32,7 @@ export async function loadAdmin(event,section='overview',nodeId=null){
  }
  if(['activity','operations','overview'].includes(section)||nodeId)base.activity=await result((nodeId?sb.from('portal_audit_events').select('*').eq('node_id',nodeId):sb.from('portal_audit_events').select('*')).order('created_at',{ascending:false}).limit(section==='overview'?6:100));
  if(section==='operations')base.runs=await result(sb.from('portal_sync_runs').select('*').order('started_at',{ascending:false}).limit(100));
+ if(section==='operations')base.enquiries=await result(sb.from('portal_contact_enquiries').select('id,created_at,name,email,phone,organisation,enquiry,message,status,notification_status,notified_at').order('created_at',{ascending:false}).limit(100));
  if(section==='sharing'){
   base.policies=await result(sb.from('portal_allocation_policies').select('*').order('created_at',{ascending:false}).limit(100));
   base.energyAccounts=await result(sb.from('portal_energy_accounts').select('*').limit(2000));
@@ -57,7 +60,18 @@ export async function adminAction(event){
  const {sb,user}=await requireAdmin(event);let operation;
  try{
   const form=await formData(event.request);operation=text(form,'operation',40);let payload={};let message='Change saved.';
-  if(operation==='node.save'){payload={node_id:id(form,'node_id',false),display_name:text(form,'display_name'),location_label:text(form,'location_label'),community_id:id(form,'community_id',false)};}
+  if(operation==='contact.status'){
+   const status=text(form,'status',20);if(!['new','reviewed','resolved'].includes(status))throw new Error('Select a valid enquiry status.');
+   const {error:statusError}=await sb.rpc('portal_enquiry_status',{p_actor:user.id,p_id:id(form,'enquiry_id'),p_status:status});if(statusError)throw new Error('database_error');
+   return {success:true,operation,message:'Enquiry status updated.'};
+  }
+  else if(operation==='contact.notify'){
+   const row=await result(sb.from('portal_contact_enquiries').select('*').eq('id',id(form,'enquiry_id')).single());
+   const notification=await notifyEnquiry(row,config(event));
+   const {error:noticeError}=await sb.from('portal_contact_enquiries').update(notification).eq('id',row.id);if(noticeError)throw new Error('database_error');
+   return {success:notification.notification_status==='sent',operation,message:notification.notification_status==='sent'?'Email notification accepted by the delivery service.':notification.notification_status==='not_configured'?'Configure RESEND_API_KEY, CONTACT_EMAIL_FROM and CONTACT_EMAIL_TO on the server to enable email delivery.':'The email provider could not accept this notification. The enquiry remains saved; try again later.'};
+  }
+  else if(operation==='node.save'){payload={node_id:id(form,'node_id',false),display_name:text(form,'display_name'),location_label:text(form,'location_label'),community_id:id(form,'community_id',false)};}
   else if(operation==='node.onboard'){
    const node_id=crypto.randomUUID();const location=coordinates(form.get('latitude'),form.get('longitude'));
    payload={display_name:text(form,'display_name'),location_label:text(form,'location_label'),community_id:id(form,'community_id',false),user_id:id(form,'user_id'),installation_id:text(form,'installation_id',24),...location};
@@ -92,6 +106,12 @@ export async function adminAction(event){
    const {data,error:inviteError}=await sb.auth.admin.generateLink({type,email,options:{data:{full_name},redirectTo:config(event).APP_ORIGIN+'/auth/confirm'}});if(inviteError||!data.user?.id||!data.properties?.hashed_token)throw new Error('Invitation could not be prepared. Check whether this email already belongs to another application in this Supabase project.');
    await auditWrite(sb,user.id,'client.save',{user_id:data.user.id,full_name,node_id});await auditWrite(sb,user.id,'client.link_created',{user_id:data.user.id,node_id});
    return {success:true,operation,message:type==='invite'?'Invitation created. No email has been sent. Share this private, expiring link with the client.':'Recovery link created. No email has been sent.',activationLink:config(event).APP_ORIGIN+'/auth/confirm?token_hash='+encodeURIComponent(data.properties.hashed_token)+'&type='+type};
+  }
+  else if(operation==='client.details'){
+   payload={user_id:id(form,'user_id'),full_name:text(form,'full_name'),nodes:clientNodes(text(form,'nodes',60000))};
+   const {error:saveError}=await sb.rpc('portal_save_client_details',{p_actor:user.id,p_payload:payload});
+   if(saveError)throw new Error('database_error');
+   return {success:true,operation,message:'Client, node assignments and map locations saved.'};
   }
   else if(operation==='client.save'){payload={user_id:id(form,'user_id'),full_name:text(form,'full_name'),node_id:id(form,'node_id',false)};}
   else if(operation==='client.access'){payload={user_id:id(form,'user_id'),active:form.get('active')==='true'};message=payload.active?'Client access restored.':'Client portal and direct data access revoked.';}
