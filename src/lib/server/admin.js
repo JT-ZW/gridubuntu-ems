@@ -6,6 +6,10 @@ import {listInstallations,readInstallation} from './vrm';
 import {collectNode} from './collector';
 import {adminSections,uuidPattern,buildAlerts,completeConsumptionDays,demandBaseline} from '../admin-domain.js';
 import {rangeBounds} from '../energy.js';
+import {simulationEnabled,simulatedTelemetry,simulatedIntervals} from '../simulation.js';
+import {coordinates} from '../coordinates.js';
+import {harareDate,boundedNumber} from '../manual-energy.js';
+import {prepareVictronNode} from './onboarding.js';
 
 export async function loadAdmin(event,section='overview',nodeId=null){
  if(!adminSections.includes(section))error(404,'Page not found.');
@@ -17,6 +21,7 @@ export async function loadAdmin(event,section='overview',nodeId=null){
  const selectedId=nodeId||event.url.searchParams.get('node')||nodes[0]?.id;
  const node=nodes.find(n=>n.id===selectedId)||null;if(nodeId&&!node)error(404,'Node not found.');
  const base={section,profile,nodes,clients,communities,connections,secrets,snapshots,syncs,memberships,settings,alerts,node,preview:false};
+ if(section==='communities')base.maps={browserKey:config(event).GOOGLE_MAPS_BROWSER_KEY||'',mapId:config(event).GOOGLE_MAPS_MAP_ID||'DEMO_MAP_ID'};
  if(['settings','operations'].includes(section))base.collector=await result(sb.from('portal_collector_state').select('enabled,schedule,job_id,last_enqueued_at,last_http_status').single());
  if(nodeId){const check=await result(sb.from('portal_connection_checks').select('node_id,revision,result,tested_at').eq('node_id',node.id).maybeSingle());base.check=check;}
  if(['history','forecasting'].includes(section)||nodeId){
@@ -25,8 +30,22 @@ export async function loadAdmin(event,section='overview',nodeId=null){
  }
  if(['activity','operations','overview'].includes(section)||nodeId)base.activity=await result((nodeId?sb.from('portal_audit_events').select('*').eq('node_id',nodeId):sb.from('portal_audit_events').select('*')).order('created_at',{ascending:false}).limit(section==='overview'?6:100));
  if(section==='operations')base.runs=await result(sb.from('portal_sync_runs').select('*').order('started_at',{ascending:false}).limit(100));
- if(section==='sharing')base.policies=await result(sb.from('portal_allocation_policies').select('*').order('created_at',{ascending:false}).limit(100));
+ if(section==='sharing'){
+  base.policies=await result(sb.from('portal_allocation_policies').select('*').order('created_at',{ascending:false}).limit(100));
+  base.energyAccounts=await result(sb.from('portal_energy_accounts').select('*').limit(2000));
+  base.tokenLedger=await result(sb.from('portal_energy_token_ledger').select('*').order('created_at',{ascending:false}).limit(100));
+  base.tokenBalances=await result(sb.from('portal_energy_balances').select('*').limit(2000));
+  base.adjustmentId=crypto.randomUUID();
+ }
  if(section==='forecasting'&&node){const rows=await consumptionRows(sb,node.id);base.completeDays=completeConsumptionDays(rows).length;base.forecasts=await result(sb.from('portal_forecast_runs').select('*').eq('node_id',node.id).order('generated_at',{ascending:false}).limit(10));}
+ const testNode=nodes.find(n=>simulationEnabled(event.url.origin,config(event),n.id));
+ if(testNode){
+  base.simulationEnabled=true;
+  const test=simulatedTelemetry('today');
+  base.connections=connections.map(c=>c.node_id===testNode.id?{...c,simulated:true}:c);
+  base.snapshots=[...snapshots.filter(s=>s.node_id!==testNode.id),{node_id:testNode.id,reported_at:test.snapshot.reportedAt,measurements:test.snapshot.metrics,simulated:true}];
+  if(node?.id===testNode.id){base.simulated=true;base.simulatedDevices=test.devices;base.intervals=simulatedIntervals(node.id,base.range||'7d');base.check=null;if(section==='forecasting'){base.completeDays=0;base.forecasts=[];}}
+ }
  return base;
 }
 async function consumptionRows(sb,nodeId){return result(sb.from('portal_energy_intervals').select('metric,resolution,interval_start,interval_end,energy_kwh').eq('node_id',nodeId).eq('resolution','hours').eq('metric','consumption').gte('interval_start',new Date(Date.now()-35*86400000).toISOString()).order('interval_start').limit(1000));}
@@ -39,6 +58,32 @@ export async function adminAction(event){
  try{
   const form=await formData(event.request);operation=text(form,'operation',40);let payload={};let message='Change saved.';
   if(operation==='node.save'){payload={node_id:id(form,'node_id',false),display_name:text(form,'display_name'),location_label:text(form,'location_label'),community_id:id(form,'community_id',false)};}
+  else if(operation==='node.onboard'){
+   const node_id=crypto.randomUUID();const location=coordinates(form.get('latitude'),form.get('longitude'));
+   payload={display_name:text(form,'display_name'),location_label:text(form,'location_label'),community_id:id(form,'community_id',false),user_id:id(form,'user_id'),installation_id:text(form,'installation_id',24),...location};
+   if(location.latitude===null)throw new Error('Enter both latitude and longitude for the node map.');
+   if(payload.display_name.length<2||!/^\d+$/.test(payload.installation_id))throw new Error('Enter a residence name and numeric Victron installation ID.');
+   if(payload.user_id&&!await result(sb.from('portal_client_directory').select('id').eq('id',payload.user_id).eq('role','client').eq('active',true).maybeSingle()))throw new Error('invalid_client');
+   const {check,ciphertext}=await prepareVictronNode(node_id,payload,text(form,'token',8192),config(event));
+   const {error:onboardError}=await sb.rpc('portal_onboard_victron',{p_actor:user.id,p_node:node_id,p_payload:payload,p_ciphertext:ciphertext,p_check:check});
+   if(onboardError){if(onboardError.message.includes('portal_unique_active_installation'))throw new Error('Select the existing node for this installation and assign its client there. Each physical installation can have only one active node.');throw new Error('database_error');}
+   return {success:true,operation,message:check.ready?'Node, client assignment and map location saved. Readings passed the initial test; open the connection to compare with VRM and verify.':'Node and map location saved. The provider test needs review before live monitoring can begin.',nodeLink:'/admin/nodes/'+node_id+'?tab=connection'};
+  }
+  else if(operation==='entitlement.save'||operation==='token.adjust'){
+   payload={node_id:id(form,'node_id'),user_id:id(form,'user_id')};
+   if(operation==='entitlement.save'){
+    payload={...payload,revision:boundedNumber(form,'revision',0,2147483647,true),enabled:form.get('enabled')==='true',daily_limit_kwh:boundedNumber(form,'daily_limit_kwh',0,10000),max_power_kw:boundedNumber(form,'max_power_kw',0.01,1000),priority:boundedNumber(form,'priority',1,10,true),valid_from:harareDate(text(form,'valid_from',32,false)),valid_until:harareDate(text(form,'valid_until',32,false))};
+    if(payload.valid_until&&payload.valid_from&&payload.valid_until<=payload.valid_from)throw new Error('Enter an end date after the start date.');
+   }else{payload={...payload,delta_kwh:boundedNumber(form,'delta_kwh',-100000,100000),reason:text(form,'reason',500),request_id:id(form,'request_id')};if(payload.delta_kwh===0||payload.reason.length<5)throw new Error('Enter a non-zero adjustment and a reason of at least 5 characters.');}
+   const {error:manualError}=await sb.rpc('portal_manual_energy',{p_actor:user.id,p_action:operation,p_payload:payload});
+   if(manualError){if(manualError.message.includes('insufficient_energy_credit'))throw new Error('Enter a debit no greater than the current energy credit balance.');if(manualError.message.includes('connection_changed'))throw new Error('connection_changed');if(manualError.message.includes('account_required'))throw new Error('Select a client with saved energy access settings first.');throw new Error('database_error');}
+   return {success:true,operation,message:operation==='entitlement.save'?'Manual energy access settings saved. Hardware enforcement is not enabled.':'Energy credit adjustment recorded. This is an administrative allowance, not a payment or measured transfer.'};
+  }
+  else if(operation==='node.location'){
+   const location=coordinates(form.get('latitude'),form.get('longitude'));
+   const {error:locationError}=await sb.rpc('portal_set_node_location',{p_actor:user.id,p_node:id(form,'node_id'),p_latitude:location.latitude,p_longitude:location.longitude});
+   if(locationError)throw new Error('database_error');return {success:true,operation,message:location.latitude===null?'Node coordinates cleared.':'Node coordinates saved. The community map uses this location.'};
+  }
   else if(operation==='community.save'){payload={community_id:id(form,'community_id',false),name:text(form,'name')};}
   else if(operation==='client.invite'){
    const email=text(form,'email',254).toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error('Enter a valid email address.');const full_name=text(form,'full_name');const node_id=id(form,'node_id',false);
@@ -59,6 +104,7 @@ export async function adminAction(event){
    const {error:roleError}=await sb.rpc('portal_admin_role_change',{p_actor:user.id,p_target:target,p_role:role,p_active:form.get('active')==='true'});if(roleError)throw new Error('database_error');return {success:true,operation,message:'Account role and access updated.'};
   }
   else if(operation.startsWith('connection.')){
+   if(simulationEnabled(event.url.origin,config(event),id(form,'node_id')))return fail(400,{success:false,operation,message:'This local test node uses simulated readings. Disable local simulation before configuring or collecting real Victron data.'});
    const node_id=id(form,'node_id');const connection=await result(sb.from('portal_provider_connections').select('*').eq('node_id',node_id).single());const revision=Number(text(form,'revision',12));if(!Number.isInteger(revision)||revision!==connection.revision)throw new Error('connection_changed');payload={node_id,revision};
    if(operation==='connection.token'){const token=text(form,'token',8192);await listInstallations(token);payload.ciphertext=await sealSecret(token,node_id,config(event).NODE_CREDENTIAL_ENCRYPTION_KEY);message='Token validated and encrypted. Select an installation next.';}
    else if(operation==='connection.discover'){
@@ -79,7 +125,7 @@ export async function adminAction(event){
   else if(operation==='settings.save'){const support_email=text(form,'support_email',254);const low_battery_percent=Number(text(form,'low_battery_percent',3));if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(support_email)||!Number.isInteger(low_battery_percent)||low_battery_percent<1||low_battery_percent>99)throw new Error('Enter a valid support email and battery threshold from 1 to 99.');payload={support_email,low_battery_percent};}
   else if(operation==='policy.save'){payload={community_id:id(form,'community_id'),model:text(form,'model',30),battery_reserve:Number(text(form,'battery_reserve',3)),household_limit_kw:Number(text(form,'household_limit_kw',8)),notes:text(form,'notes',1000,false)};if(!['equal_share','essential_first'].includes(payload.model)||!Number.isInteger(payload.battery_reserve)||payload.battery_reserve<0||payload.battery_reserve>100||!Number.isFinite(payload.household_limit_kw)||payload.household_limit_kw<=0||payload.household_limit_kw>1000)throw new Error('Check the allocation policy values.');message='New policy version saved as a planning draft. No equipment command was sent.';}
   else if(operation==='alert.ack'){payload={node_id:id(form,'node_id'),kind:text(form,'kind',40),fingerprint:text(form,'fingerprint',100)};}
-  else if(operation==='forecast.run'){const node_id=id(form,'node_id');const baseline=demandBaseline(await consumptionRows(sb,node_id));await auditWrite(sb,user.id,'forecast.save',{node_id,...baseline});return {success:true,operation,message:'Hourly median baseline generated with a separate validation day. This is not a machine-learning forecast.'};}
+  else if(operation==='forecast.run'){const node_id=id(form,'node_id');if(simulationEnabled(event.url.origin,config(event),node_id))return fail(400,{success:false,operation,message:'Simulated history is excluded from saved forecasts. Connect real measurements before training demand forecasts.'});const baseline=demandBaseline(await consumptionRows(sb,node_id));await auditWrite(sb,user.id,'forecast.save',{node_id,...baseline});return {success:true,operation,message:'Hourly median baseline generated with a separate validation day. This is not a machine-learning forecast.'};}
   else throw new Error('Unsupported operation.');
   const saved=await auditWrite(sb,user.id,operation,payload);return {success:true,operation,message,saved};
  }catch(failure){const code=failure.kind||failure.message;const safe=messages[code]||(/^(Check |Enter |Select |Invitation |Use administrator|Unsupported |At least |Recent complete)/.test(code)?code:'The operation could not complete. Reload and try again.');return fail(400,{success:false,operation,message:safe});}

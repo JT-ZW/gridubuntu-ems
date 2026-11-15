@@ -1,0 +1,3 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {coordinates} from '../src/lib/coordinates.js';
+test('coordinates accept real decimal pairs including zero, and support clearing',()=>{assert.deepEqual(coordinates('-17.8252','31.0335'),{latitude:-17.8252,longitude:31.0335});assert.deepEqual(coordinates('0','0'),{latitude:0,longitude:0});assert.deepEqual(coordinates('',''),{latitude:null,longitude:null});});
+test('coordinates reject partial, non-finite and out-of-range input',()=>{for(const pair of [['','31'],['-17',''],['NaN','31'],['Infinity','0'],['-91','0'],['0','181']])assert.throws(()=>coordinates(...pair));});

@@ -29,3 +29,7 @@ See [client portal setup](docs/CLIENT_PORTAL_SETUP.md) for Supabase database mig
 The real pilot token is not included. Hardware readings must be reconciled with VRM before the connection is marked verified. Marketing product screens remain screenshots; the contact form opens a draft for the visitor to send.
 
 Original website design: https://gridubuntu-frontend.fly.dev/
+
+## Administrator workflows
+
+See [Victron onboarding and manual energy administration](docs/ADMIN_ONBOARDING_AND_ENERGY.md), [Google Maps setup](docs/GOOGLE_MAPS_SETUP.md) and the [production readiness assessment](docs/PRODUCTION_READINESS.md). GitHub CI validates changes; deployment requires a separately configured compatible Worker host.

@@ -1,0 +1,2 @@
+<div class="prototype-status"><span class="prototype-dot"></span><strong>Prototype</strong><span>Updates every 3 seconds</span></div>
+<style>.prototype-status{display:flex;align-items:center;flex-wrap:wrap;gap:9px;font-size:12px;color:#60734c;margin-bottom:18px}.prototype-status strong{font-weight:600;color:#38542b}.prototype-status>span:last-child{border-left:1px solid #cdd9c4;padding-left:10px}.prototype-dot{width:7px;height:7px;border-radius:50%;background:#7aa53d;box-shadow:0 0 0 4px #7aa53d15}</style>

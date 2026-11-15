@@ -1,7 +1,7 @@
 import {numeric} from './energy.js';
 export const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const adminSections=['overview','clients','nodes','communities','history','operations','forecasting','sharing','settings','activity'];
-export function connectionLabel(connection,hasToken=false){if(!connection)return 'Not configured';if(!connection.active)return 'Paused';if(!hasToken)return 'Token needed';if(!connection.provider_installation_id)return 'Select installation';if(!connection.verified_at)return 'Verification needed';return 'Verified';}
+export function connectionLabel(connection,hasToken=false){if(connection?.simulated)return 'Prototype node';if(!connection)return 'Not configured';if(!connection.active)return 'Paused';if(!hasToken)return 'Token needed';if(!connection.provider_installation_id)return 'Select installation';if(!connection.verified_at)return 'Verification needed';return 'Verified';}
 export function buildAlerts(nodes,connections,snapshots,syncs,threshold=20,now=Date.now()){
  const alerts=[];
  for(const node of nodes){const c=connections.find(c=>c.node_id===node.id);if(!c?.active||!c.verified_at)continue;const s=snapshots.find(s=>s.node_id===node.id);const sync=syncs.find(r=>r.node_id===node.id);

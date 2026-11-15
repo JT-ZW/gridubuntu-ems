@@ -18,7 +18,9 @@ export async function handle({event,resolve}) {
  const privateRoute=/^\/(admin(?:\/|$)|admin-preview|portal(?:\/|$)|login|logout|auth(?:\/|$)|api(?:\/|$))/.test(event.url.pathname);
  if(privateRoute){response.headers.set('Cache-Control','private, no-store');response.headers.set('X-Robots-Tag','noindex, nofollow');}
  response.headers.set('X-Content-Type-Options','nosniff');
- response.headers.set('Referrer-Policy','same-origin');
+ response.headers.set('Referrer-Policy',event.url.pathname.startsWith('/auth/')?'no-referrer':'strict-origin-when-cross-origin');
+ response.headers.set('Permissions-Policy','camera=(), microphone=(), geolocation=()');
+ if(event.url.protocol==='https:')response.headers.set('Strict-Transport-Security','max-age=15552000');
  response.headers.set('X-Frame-Options','DENY');
  return response;
 }

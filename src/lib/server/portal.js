@@ -3,6 +3,7 @@ import { config } from './config';
 import { readInstallation } from './vrm';
 import {rangeBounds,freshness} from '../energy.js';
 import {serviceClient,nodeToken} from './service';
+import {simulationEnabled,simulatedTelemetry} from '../simulation.js';
 
 export async function loadPortal(event,range='today') {
  if(!await event.locals.getUser())redirect(303,'/login');
@@ -12,6 +13,7 @@ export async function loadPortal(event,range='today') {
  if(!nodes?.length)return {node:null,nodes:[],status:'no_assignment',snapshot:null,history:null,devices:[],verified:false};
  const requested=event.url.searchParams.get('node');
  const node=requested?nodes.find(n=>n.id===requested):nodes[0];if(!node)error(403,'This residence is not assigned to your account.');
+ if(simulationEnabled(event.url.origin,config(event),node.id))return {node,nodes,...simulatedTelemetry(range)};
  const {data:connection}=await sb.from('portal_provider_connections').select('*').eq('node_id',node.id).maybeSingle();
  let telemetry={status:'not_configured',snapshot:null,history:null,devices:[],verified:false};
  if(connection?.provider==='victron') {
