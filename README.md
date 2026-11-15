@@ -16,7 +16,7 @@ Private settings belong in `.env`; see `.env.example` for blank configuration fi
 `npm run build`
 `npm run test:worker`
 
-The production Worker is generated in `dist/server/index.js`, with static assets in `dist/client`.
+Vercel/Linux builds use the official Vercel adapter and generate `.vercel/output`. Windows local builds retain the portable Worker output (`dist/server/index.js` and `dist/client`). See [Vercel deployment](docs/VERCEL_DEPLOYMENT.md).
 
 ## Client application
 
@@ -32,4 +32,4 @@ Original website design: https://gridubuntu-frontend.fly.dev/
 
 ## Administrator workflows
 
-See [Victron onboarding and manual energy administration](docs/ADMIN_ONBOARDING_AND_ENERGY.md), [Google Maps setup](docs/GOOGLE_MAPS_SETUP.md) and the [production readiness assessment](docs/PRODUCTION_READINESS.md). GitHub CI validates changes; deployment requires a separately configured compatible Worker host.
+See [Victron onboarding and manual energy administration](docs/ADMIN_ONBOARDING_AND_ENERGY.md), [Google Maps setup](docs/GOOGLE_MAPS_SETUP.md) and the [production readiness assessment](docs/PRODUCTION_READINESS.md). GitHub CI validates the deployment artifact; the connected Vercel project publishes preview branches and production `main`. Production environment variables must be configured separately.

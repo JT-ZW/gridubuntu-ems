@@ -10,10 +10,13 @@
     "test": "node --test tests/*.test.js",
     "test:worker": "node scripts/smoke-worker.mjs",
     "db:migrate": "node --env-file=.env scripts/migrate-portal.mjs",
-    "test:rls": "node --env-file=.env scripts/test-rls.mjs"
+    "test:rls": "node --env-file=.env scripts/test-rls.mjs",
+    "build:worker": "node scripts/build-worker.mjs",
+    "test:deployment": "node scripts/smoke-vercel.mjs"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.0",
+    "@sveltejs/adapter-vercel": "^6.3.5",
     "@sveltejs/kit": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^6.0.0",
     "esbuild": "^0.28.2",
@@ -26,5 +29,8 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

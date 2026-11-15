@@ -9,3 +9,4 @@ build/
 dist/
 .wrangler/
 .private/
+.vercel/
