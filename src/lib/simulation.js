@@ -1,8 +1,10 @@
 import {rangeBounds} from './energy.js';
 
-export function simulationEnabled(origin,settings,nodeId){
+export function simulationEnabled(origin,settings,nodeId,node=null){
  let url;try{url=new URL(origin);}catch{return false;}
- return ['localhost','127.0.0.1','[::1]'].includes(url.hostname)&&settings.LOCAL_TEST_NODE_ENABLED==='true'&&Boolean(settings.VICTRON_PILOT_NODE_ID)&&nodeId===settings.VICTRON_PILOT_NODE_ID;
+ const local=['localhost','127.0.0.1','[::1]'].includes(url.hostname);
+ if(node?.id===nodeId&&node.telemetry_mode)return node.telemetry_mode==='prototype'&&(url.protocol==='https:'||(url.protocol==='http:'&&local));
+ return local&&settings.LOCAL_TEST_NODE_ENABLED==='true'&&Boolean(settings.VICTRON_PILOT_NODE_ID)&&nodeId===settings.VICTRON_PILOT_NODE_ID;
 }
 function powerAt(ms){
  const hour=((ms/3600000+2)%24+24)%24;

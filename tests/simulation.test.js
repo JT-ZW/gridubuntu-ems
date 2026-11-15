@@ -1,6 +1,17 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';
 import {simulationEnabled,simulatedTelemetry,simulatedIntervals,prototypePower} from '../src/lib/simulation.js';
 const settings={LOCAL_TEST_NODE_ENABLED:'true',VICTRON_PILOT_NODE_ID:'pilot'};
+test('explicit database prototype mode works on HTTPS without local environment flags and remains node scoped',()=>{
+ const pilot={id:'pilot',telemetry_mode:'prototype'};
+ assert.equal(simulationEnabled('https://gridubuntu.com',{},'pilot',pilot),true);
+ assert.equal(simulationEnabled('https://www.gridubuntu.com',{},'pilot',pilot),true);
+ assert.equal(simulationEnabled('https://preview.vercel.app',{},'pilot',pilot),true);
+ assert.equal(simulationEnabled('https://gridubuntu.com',{},'other',pilot),false);
+ assert.equal(simulationEnabled('https://gridubuntu.com',{},'pilot',{...pilot,telemetry_mode:'measured'}),false);
+ assert.equal(simulationEnabled('http://localhost:5173',settings,'pilot',{...pilot,telemetry_mode:'measured'}),false);
+ assert.equal(simulationEnabled('http://untrusted.test',{},'pilot',pilot),false);
+ assert.equal(simulationEnabled('garbage',{},'pilot',pilot),false);
+});
 test('presentation power changes on three-second ticks and balances across a full cycle',()=>{
  const start=Date.parse('2026-11-15T10:00:00Z');const readings=Array.from({length:61},(_,i)=>prototypePower(start+i*3000));
  assert.ok(new Set(readings.map(p=>p.solar)).size>10);assert.ok(new Set(readings.map(p=>p.consumption)).size>10);

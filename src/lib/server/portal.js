@@ -8,12 +8,12 @@ import {simulationEnabled,simulatedTelemetry} from '../simulation.js';
 export async function loadPortal(event,range='today') {
  if(!await event.locals.getUser())redirect(303,'/login');
  const sb=event.locals.supabase;
- const {data:nodes,error:nodeError}=await sb.from('portal_nodes').select('id,reference,display_name,location_label,timezone').order('created_at');
+ const {data:nodes,error:nodeError}=await sb.from('portal_nodes').select('id,reference,display_name,location_label,timezone,telemetry_mode').order('created_at');
  if(nodeError)return {node:null,nodes:[],status:'database_unavailable',snapshot:null,history:null,devices:[],verified:false};
  if(!nodes?.length)return {node:null,nodes:[],status:'no_assignment',snapshot:null,history:null,devices:[],verified:false};
  const requested=event.url.searchParams.get('node');
  const node=requested?nodes.find(n=>n.id===requested):nodes[0];if(!node)error(403,'This residence is not assigned to your account.');
- if(simulationEnabled(event.url.origin,config(event),node.id))return {node,nodes,...simulatedTelemetry(range)};
+ if(simulationEnabled(event.url.origin,config(event),node.id,node))return {node,nodes,...simulatedTelemetry(range)};
  const {data:connection}=await sb.from('portal_provider_connections').select('*').eq('node_id',node.id).maybeSingle();
  let telemetry={status:'not_configured',snapshot:null,history:null,devices:[],verified:false};
  if(connection?.provider==='victron') {

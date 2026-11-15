@@ -43,7 +43,7 @@ export async function loadAdmin(event,section='overview',nodeId=null){
   base.adjustmentId=crypto.randomUUID();
  }
  if(section==='forecasting'&&node){const rows=await consumptionRows(sb,node.id);base.completeDays=completeConsumptionDays(rows).length;base.forecasts=await result(sb.from('portal_forecast_runs').select('*').eq('node_id',node.id).order('generated_at',{ascending:false}).limit(10));}
- const testNode=nodes.find(n=>simulationEnabled(event.url.origin,config(event),n.id));
+ const testNode=nodes.find(n=>simulationEnabled(event.url.origin,config(event),n.id,n));
  if(testNode){
   base.simulationEnabled=true;
   const test=simulatedTelemetry('today');
@@ -132,7 +132,7 @@ export async function adminAction(event){
    const {error:roleError}=await sb.rpc('portal_admin_role_change',{p_actor:user.id,p_target:target,p_role:role,p_active:form.get('active')==='true'});if(roleError)throw new Error('database_error');return {success:true,operation,message:'Account role and access updated.'};
   }
   else if(operation.startsWith('connection.')){
-   if(simulationEnabled(event.url.origin,config(event),id(form,'node_id')))return fail(400,{success:false,operation,message:'This local test node uses simulated readings. Disable local simulation before configuring or collecting real SunSynk data.'});
+   if(simulationEnabled(event.url.origin,config(event),id(form,'node_id'),await result(sb.from('portal_nodes').select('id,telemetry_mode').eq('id',id(form,'node_id')).single())))return fail(400,{success:false,operation,message:'This prototype node uses generated readings. Switch its telemetry mode to measured before configuring or collecting provider data.'});
    const node_id=id(form,'node_id');const connection=await result(sb.from('portal_provider_connections').select('*').eq('node_id',node_id).single());const revision=Number(text(form,'revision',12));if(!Number.isInteger(revision)||revision!==connection.revision)throw new Error('connection_changed');payload={node_id,revision};
    if(operation==='connection.token'){const token=text(form,'token',8192);await listInstallations(token);payload.ciphertext=await sealSecret(token,node_id,config(event).NODE_CREDENTIAL_ENCRYPTION_KEY);message='Token validated and encrypted. Select an installation next.';}
    else if(operation==='connection.discover'){
@@ -153,7 +153,7 @@ export async function adminAction(event){
   else if(operation==='settings.save'){const support_email=text(form,'support_email',254);const low_battery_percent=Number(text(form,'low_battery_percent',3));if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(support_email)||!Number.isInteger(low_battery_percent)||low_battery_percent<1||low_battery_percent>99)throw new Error('Enter a valid support email and battery threshold from 1 to 99.');payload={support_email,low_battery_percent};}
   else if(operation==='policy.save'){payload={community_id:id(form,'community_id'),model:text(form,'model',30),battery_reserve:Number(text(form,'battery_reserve',3)),household_limit_kw:Number(text(form,'household_limit_kw',8)),notes:text(form,'notes',1000,false)};if(!['equal_share','essential_first'].includes(payload.model)||!Number.isInteger(payload.battery_reserve)||payload.battery_reserve<0||payload.battery_reserve>100||!Number.isFinite(payload.household_limit_kw)||payload.household_limit_kw<=0||payload.household_limit_kw>1000)throw new Error('Check the allocation policy values.');message='New policy version saved as a planning draft. No equipment command was sent.';}
   else if(operation==='alert.ack'){payload={node_id:id(form,'node_id'),kind:text(form,'kind',40),fingerprint:text(form,'fingerprint',100)};}
-  else if(operation==='forecast.run'){const node_id=id(form,'node_id');if(simulationEnabled(event.url.origin,config(event),node_id))return fail(400,{success:false,operation,message:'Simulated history is excluded from saved forecasts. Connect real measurements before training demand forecasts.'});const baseline=demandBaseline(await consumptionRows(sb,node_id));await auditWrite(sb,user.id,'forecast.save',{node_id,...baseline});return {success:true,operation,message:'Hourly median baseline generated with a separate validation day. This is not a machine-learning forecast.'};}
+  else if(operation==='forecast.run'){const node_id=id(form,'node_id');if(simulationEnabled(event.url.origin,config(event),node_id,await result(sb.from('portal_nodes').select('id,telemetry_mode').eq('id',node_id).single())))return fail(400,{success:false,operation,message:'Simulated history is excluded from saved forecasts. Connect real measurements before training demand forecasts.'});const baseline=demandBaseline(await consumptionRows(sb,node_id));await auditWrite(sb,user.id,'forecast.save',{node_id,...baseline});return {success:true,operation,message:'Hourly median baseline generated with a separate validation day. This is not a machine-learning forecast.'};}
   else throw new Error('Unsupported operation.');
   const saved=await auditWrite(sb,user.id,operation,payload);return {success:true,operation,message,saved};
  }catch(failure){const code=failure.kind||failure.message;const safe=messages[code]||(/^(Check |Enter |Select |Invitation |Use administrator|Unsupported |At least |Recent complete)/.test(code)?code:'The operation could not complete. Reload and try again.');return fail(400,{success:false,operation,message:safe});}
