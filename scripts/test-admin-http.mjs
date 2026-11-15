@@ -8,12 +8,33 @@ async function invited(role){const email=`ems-${role}-${tag}@example.invalid`;co
 try{
  await db.connect();const admin=await invited('admin');adminId=admin.id;const client=await invited('client');
  await expect('/admin','',null,303);await expect('/admin',client.cookie,null,403);await expect('/admin/nodes',client.cookie,{operation:'node.save',display_name:'Forbidden',location_label:'Test'},403);
- for(const path of ['/admin','/admin/clients','/admin/nodes','/admin/communities','/admin/history','/admin/operations','/admin/forecasting','/admin/sharing','/admin/settings','/admin/activity']){const r=await expect(path,admin.cookie);assert.ok(!r.body.includes(process.env.VICTRON_VRM_ACCESS_TOKEN||'no-secret-value'));}
+ for(const path of ['/admin','/admin/clients','/admin/nodes','/admin/communities','/admin/health','/admin/operations','/admin/forecasting','/admin/sharing','/admin/settings','/admin/activity']){const r=await expect(path,admin.cookie);assert.ok(!r.body.includes(process.env.VICTRON_VRM_ACCESS_TOKEN||'no-secret-value'));}
+ const legacyHistory=await expect('/admin/history?range=30d',admin.cookie,null,308);assert.match(legacyHistory.headers.get('location'),/health\?.*tab=history/);
  const overview=await expect('/admin',admin.cookie);assert.match(overview.body,/Genius Mukichi Residence/);console.log('Admin routes and existing pilot visibility passed. Client access to admin pages and mutations is blocked.');
  await expect('/admin/communities',admin.cookie,{operation:'community.save',name:'HTTP test community '+tag});const community=(await db.query('select id from public.portal_communities where name=$1',['HTTP test community '+tag])).rows[0].id;communities.push(community);
  await expect('/admin/nodes',admin.cookie,{operation:'node.save',display_name:'HTTP test residence '+tag,location_label:'Temporary test',community_id:community});const node=(await db.query('select id from public.portal_nodes where display_name=$1',['HTTP test residence '+tag])).rows[0].id;nodes.push(node);
  await expect('/admin/nodes/'+node+'?tab=access',admin.cookie,{operation:'membership.add',node_id:node,user_id:client.id});
+
+ const pinnedName='HTTP pinned node '+tag;
+ await expect('/admin/communities',admin.cookie,{operation:'node.map.register',display_name:pinnedName,location_label:'Map test',latitude:'-19.123456',longitude:'29.567891',user_id:client.id,community_id:community});
+ const pinned=(await db.query('select id,latitude,longitude from public.portal_nodes where display_name=$1',[pinnedName])).rows[0];nodes.push(pinned.id);assert.equal(Number(pinned.latitude),-19.123456);assert.equal(Number(pinned.longitude),29.567891);
+ assert.equal((await db.query('select node_id from public.portal_node_memberships where node_id=$1 and user_id=$2',[pinned.id,client.id])).rowCount,1);
+ await expect('/admin/communities',client.cookie,{operation:'node.map.register',display_name:'Forbidden',location_label:'Test',latitude:'-19',longitude:'29'},403);
+ await expect('/admin/communities',admin.cookie,{operation:'node.map.register',display_name:'Invalid map '+tag,location_label:'Test',latitude:'91',longitude:'29'},400);
+ await expect('/admin/communities',admin.cookie,{operation:'node.map.register',display_name:'Atomic map '+tag,location_label:'Test',latitude:'-19',longitude:'29',user_id:randomUUID()},400);
+ assert.equal((await db.query('select id from public.portal_nodes where display_name=$1',['Atomic map '+tag])).rowCount,0);
+ console.log('Map registration, coordinates, client assignment, access control and atomic rollback passed.');
+ const detailPayload={operation:'client.details',user_id:client.id,full_name:'Updated HTTP client '+tag,nodes:JSON.stringify([{node_id:node,display_name:'HTTP test residence '+tag,location_label:'Temporary test',latitude:-17.8252,longitude:31.0335},{node_id:null,display_name:'HTTP workshop '+tag,location_label:'Temporary test',latitude:-18,longitude:30}])};
+ await expect('/admin/clients',admin.cookie,detailPayload);
+ const workshop=(await db.query('select id from public.portal_nodes where display_name=$1',['HTTP workshop '+tag])).rows[0].id;nodes.push(workshop);
+ assert.equal(Number((await db.query('select count(*) from public.portal_node_memberships where user_id=$1',[client.id])).rows[0].count),3);
+ await expect('/admin/clients',client.cookie,detailPayload,403);
+ await expect('/admin/clients',admin.cookie,{...detailPayload,full_name:'Must not save',nodes:JSON.stringify([{node_id:node,display_name:'HTTP test residence '+tag,location_label:'Temporary test',latitude:95,longitude:31}])},400);
+ assert.equal((await db.query('select full_name from public.portal_profiles where id=$1',[client.id])).rows[0].full_name,'Updated HTTP client '+tag);
  const clientPage=await expect('/portal',client.cookie);assert.match(clientPage.body,new RegExp('HTTP test residence '+tag));assert.ok(!clientPage.body.includes('Genius Mukichi Residence'));
+ for(const tab of ['live','equipment','history','diagnostics'])await expect('/admin/health?node='+node+'&tab='+tab,admin.cookie);
+ await expect('/admin/health',client.cookie,null,403);
+ await expect('/admin/health?node='+randomUUID(),admin.cookie,null,404);
  for(const tab of ['overview','history','equipment','connection','access','activity'])await expect('/admin/nodes/'+node+'?tab='+tab,admin.cookie);
  await expect('/admin/nodes/'+node,admin.cookie,{operation:'node.location',node_id:node,latitude:'-17.8252',longitude:'31.0335'});
  assert.equal(Number((await db.query('select latitude from public.portal_nodes where id=$1',[node])).rows[0].latitude),-17.8252);

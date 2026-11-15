@@ -9,7 +9,7 @@
 .portal-app .sidebar-purpose{background:#eaf1e4;border-color:#dce5d5}
 .portal-app .panel{border:1px solid #e3eadf;border-radius:23px;background:#f9fbf7;padding:25px}
 .portal-app .panel-heading{margin-bottom:19px;align-items:start}
-.portal-app .panel-heading .overline,.portal-app .overline{font-size:10px;color:#60735c;letter-spacing:1.2px}
+.portal-app .panel-heading .overline,.portal-app .overline{font-size:10px;color:#506647;letter-spacing:1.2px}
 .portal-app .panel h2{font-size:19px;letter-spacing:-.6px;color:#253b2d}
 .portal-app .panel-tag{font-size:11px;color:#53694f;padding:7px 10px;border-radius:8px;background:#eef4e9;border:0}
 .portal-app .page-heading h1{font-size:clamp(24px,2.2vw,32px);font-weight:700}
@@ -91,7 +91,7 @@
 .portal-app .community-note a{font-size:12px;color:#385f2d}
 .portal-app .panel-link,.portal-app .quiet-link{font-size:12px;color:#416b34!important}
 .portal-app .health-row{font-size:12px}
-.portal-app .portal-footer{font-size:11px;color:#5f7555;background:#eef3ec}
+.portal-app .portal-footer{font-size:11px;color:#506647;background:#eef3ec}
 .portal-app .notice{border-radius:15px}
 .portal-app .notice strong{font-size:13px}
 .portal-app .notice p{font-size:12px}

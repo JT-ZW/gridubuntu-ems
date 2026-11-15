@@ -9,3 +9,6 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 @media(max-width:639px){h1{overflow-wrap:break-word}img{max-width:100%}main .min-h-\[92vh\]{min-height:850px}main .pt-28{padding-top:65px}main section .text-white\/70{color:rgba(255,255,255,.82)}header .max-w-7xl{gap:10px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 :root{--font-jakarta:"Plus Jakarta Sans";--font-geist-mono:geistMono}
+
+/* Keep the public navigation readable against its light background. */
+header [class*="text-[#9EB09F]"]{color:#506647}header a[class*="text-[#3BAF4A]"]{color:#257d34}header a[class*="bg-[#3BAF4A]"]{background:#257d34}

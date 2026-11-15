@@ -1,6 +1,6 @@
 # Contact enquiries
 
-The public Contact page shows only the confirmed telephone number. It never publishes the notification recipient. Submissions are saved in the private `portal_contact_enquiries` table and appear under **Admin → Alerts & operations → Website enquiries**. Administrators can update status and retry an email notification.
+The public Contact page shows only the confirmed telephone number. It never publishes the notification recipient. Submissions are saved in the private `portal_contact_enquiries` table and appear under **Admin → Operations & enquiries → Website enquiries**. Administrators can update status and retry an email notification.
 
 Apply migration `202611150012_contact_enquiries.sql` before deploying this version. Browser clients cannot read or write the enquiry table or execute its functions. The server validates input, enforces same-origin submissions, bounds request size, checks a honeypot and limits each pseudonymous source to three submissions per 15 minutes. Duplicate requests keep the same saved enquiry. Raw IP addresses are not saved; an HMAC source identifier is used for the limit.
 

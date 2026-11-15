@@ -1,2 +1,3 @@
+import {healthPreview} from '$lib/health-preview.js';
 import {error} from '@sveltejs/kit';import {config,authConfigured} from '$lib/server/config';import {adminPreview} from '$lib/admin-preview';import {adminSections} from '$lib/admin-domain';
-export function load(event){if(authConfigured(event)&&config(event).PORTAL_PREVIEW_ENABLED!=='true')error(404,'Page not found.');const view=event.url.searchParams.get('view');return adminPreview(adminSections.includes(view)?view:'overview');}
+export function load(event){if(authConfigured(event)&&config(event).PORTAL_PREVIEW_ENABLED!=='true')error(404,'Page not found.');const view=event.url.searchParams.get('view');const data=adminPreview(adminSections.includes(view)?view:'overview');return data.section==='health'?healthPreview(data,event.url.searchParams.get('node'),event.url.searchParams.get('range')):data;}

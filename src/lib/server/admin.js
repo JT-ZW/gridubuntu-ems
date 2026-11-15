@@ -1,4 +1,4 @@
-import {error,fail} from '@sveltejs/kit';
+import {error,fail,redirect} from '@sveltejs/kit';
 import {requireAdmin,result,auditWrite,nodeToken} from './service';
 import {config} from './config';
 import {sealSecret} from './secrets.js';
@@ -16,22 +16,24 @@ import {prepareVictronNode} from './onboarding.js';
 export async function loadAdmin(event,section='overview',nodeId=null){
  if(!adminSections.includes(section))error(404,'Page not found.');
  const {sb,profile}=await requireAdmin(event);
+ if(section==='history'){const params=new URLSearchParams(event.url.searchParams);params.set('tab','history');redirect(308,'/admin/health?'+params);}
  const [nodes,clients,communities,connections,secrets,snapshots,syncs,acks,settings]=await Promise.all([
   result(sb.from('portal_nodes').select('*').order('reference').limit(500)),result(sb.from('portal_client_directory').select('*').order('created_at').limit(500)),result(sb.from('portal_communities').select('*').order('name').limit(500)),result(sb.from('portal_provider_connections').select('*').limit(500)),result(sb.from('portal_connection_secrets').select('node_id,updated_at').limit(500)),result(sb.from('portal_latest_snapshots').select('*').limit(500)),result(sb.from('portal_latest_syncs').select('*').limit(500)),result(sb.from('portal_alert_acknowledgements').select('*').order('created_at',{ascending:false}).limit(1000)),result(sb.from('portal_platform_settings').select('*').single())]);
  const memberships=await result(sb.from('portal_node_memberships').select('*').limit(2000));
  const alerts=buildAlerts(nodes,connections,snapshots,syncs,settings.low_battery_percent).map(a=>({...a,acknowledged:acks.some(k=>k.node_id===a.node_id&&k.kind===a.kind&&k.fingerprint===a.fingerprint)}));
  const selectedId=nodeId||event.url.searchParams.get('node')||nodes[0]?.id;
- const node=nodes.find(n=>n.id===selectedId)||null;if(nodeId&&!node)error(404,'Node not found.');
+ const node=nodes.find(n=>n.id===selectedId)||null;if((nodeId||section==='health'&&event.url.searchParams.has('node'))&&!node)error(404,'Node not found.');
  const base={section,profile,nodes,clients,communities,connections,secrets,snapshots,syncs,memberships,settings,alerts,node,preview:false};
- if(section==='communities')base.maps={browserKey:config(event).GOOGLE_MAPS_BROWSER_KEY||'',mapId:config(event).GOOGLE_MAPS_MAP_ID||'DEMO_MAP_ID'};
- if(['settings','operations'].includes(section))base.collector=await result(sb.from('portal_collector_state').select('enabled,schedule,job_id,last_enqueued_at,last_http_status').single());
- if(nodeId){const check=await result(sb.from('portal_connection_checks').select('node_id,revision,result,tested_at').eq('node_id',node.id).maybeSingle());base.check=check;}
- if(['history','forecasting'].includes(section)||nodeId){
+ if(['communities','clients','nodes'].includes(section)||nodeId)base.maps={browserKey:config(event).GOOGLE_MAPS_BROWSER_KEY||'',mapId:config(event).GOOGLE_MAPS_MAP_ID||'DEMO_MAP_ID'};
+ if(['settings','operations','health'].includes(section))base.collector=await result(sb.from('portal_collector_state').select('enabled,schedule,job_id,last_enqueued_at,last_http_status').single());
+ if(node&&(nodeId||section==='health')){const check=await result(sb.from('portal_connection_checks').select('node_id,revision,result,tested_at').eq('node_id',node.id).maybeSingle());base.check=check;}
+ if(section==='health'){const c=config(event);base.platformHealth={database:true,authentication:Boolean(c.SUPABASE_URL&&c.SUPABASE_PUBLISHABLE_KEY),credentialEncryption:Boolean(c.NODE_CREDENTIAL_ENCRYPTION_KEY),ingestionConfigured:Boolean(c.INGESTION_SECRET),checkedAt:new Date().toISOString()};}
+ if(['history','forecasting','health'].includes(section)||nodeId){
   const range=['today','7d','30d'].includes(event.url.searchParams.get('range'))?event.url.searchParams.get('range'):'7d';const bounds=rangeBounds(range);
   base.range=range;base.intervals=node?await result(sb.from('portal_energy_intervals').select('*').eq('node_id',node.id).eq('resolution',bounds.interval).gte('interval_start',new Date(bounds.start*1000).toISOString()).lte('interval_start',new Date(bounds.end*1000).toISOString()).order('interval_start').limit(1000)):[];
  }
- if(['activity','operations','overview'].includes(section)||nodeId)base.activity=await result((nodeId?sb.from('portal_audit_events').select('*').eq('node_id',nodeId):sb.from('portal_audit_events').select('*')).order('created_at',{ascending:false}).limit(section==='overview'?6:100));
- if(section==='operations')base.runs=await result(sb.from('portal_sync_runs').select('*').order('started_at',{ascending:false}).limit(100));
+ if(['activity','operations','overview','health'].includes(section)||nodeId)base.activity=await result((nodeId||section==='health'&&node?sb.from('portal_audit_events').select('*').eq('node_id',nodeId||node.id):sb.from('portal_audit_events').select('*')).order('created_at',{ascending:false}).limit(section==='overview'?6:100));
+ if(['operations','health'].includes(section)){let query=sb.from('portal_sync_runs').select('*');if(section==='health'&&node)query=query.eq('node_id',node.id);base.runs=await result(query.order('started_at',{ascending:false}).limit(100));}
  if(section==='operations')base.enquiries=await result(sb.from('portal_contact_enquiries').select('id,created_at,name,email,phone,organisation,enquiry,message,status,notification_status,notified_at').order('created_at',{ascending:false}).limit(100));
  if(section==='sharing'){
   base.policies=await result(sb.from('portal_allocation_policies').select('*').order('created_at',{ascending:false}).limit(100));
@@ -70,6 +72,12 @@ export async function adminAction(event){
    const notification=await notifyEnquiry(row,config(event));
    const {error:noticeError}=await sb.from('portal_contact_enquiries').update(notification).eq('id',row.id);if(noticeError)throw new Error('database_error');
    return {success:notification.notification_status==='sent',operation,message:notification.notification_status==='sent'?'Email notification accepted by the delivery service.':notification.notification_status==='not_configured'?'Configure RESEND_API_KEY, CONTACT_EMAIL_FROM and CONTACT_EMAIL_TO on the server to enable email delivery.':'The email provider could not accept this notification. The enquiry remains saved; try again later.'};
+  }
+  else if(operation==='node.map.register'){
+   const location=coordinates(form.get('latitude'),form.get('longitude'));if(location.latitude===null)throw new Error('Enter coordinates or place a pin on the map.');
+   payload={display_name:text(form,'display_name'),location_label:text(form,'location_label'),community_id:id(form,'community_id',false),user_id:id(form,'user_id',false),...location};
+   const {data:node_id,error:registrationError}=await sb.rpc('portal_register_map_node',{p_actor:user.id,p_payload:payload});if(registrationError)throw new Error('database_error');
+   return {success:true,operation,message:'Node and pinned location saved. Configure its provider connection before collecting measured data.',nodeLink:'/admin/nodes/'+node_id};
   }
   else if(operation==='node.save'){payload={node_id:id(form,'node_id',false),display_name:text(form,'display_name'),location_label:text(form,'location_label'),community_id:id(form,'community_id',false)};}
   else if(operation==='node.onboard'){

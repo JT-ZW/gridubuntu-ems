@@ -8,10 +8,10 @@ if(process.platform==='win32'&&process.env.VERCEL!=='1'&&process.env.DEPLOY_TARG
  const settings=JSON.parse(fs.readFileSync(path.join(directory,'.vc-config.json'),'utf8'));assert.equal(settings.runtime,'nodejs24.x');
  const module=await import(pathToFileURL(path.resolve(directory,settings.handler)).href);const app=module.default;assert.equal(typeof app.fetch,'function');
  for(const route of ['/','product','impact','about','team','contact']){const file=route==='/'?'index.html':route+'.html';assert.ok(fs.existsSync(path.join(root,'static',file)),file+' prerendered');}
- for(const route of ['/login','/portal-preview','/portal-preview?view=history','/portal-preview?view=system',...['overview','clients','nodes','communities','history','operations','forecasting','sharing','settings','activity'].map(view=>'/admin-preview?view='+view)]){
+ for(const route of ['/login','/portal-preview','/portal-preview?view=history','/portal-preview?view=system',...['overview','clients','nodes','communities','health','history','operations','forecasting','sharing','settings','activity'].map(view=>'/admin-preview?view='+view)]){
   const response=await app.fetch(new Request('https://release.example'+route));assert.equal(response.status,200,route);assert.ok((await response.text()).length>200);
  }
- for(const route of ['/portal','/portal/history','/admin','/admin/nodes','/admin/sharing']){const response=await app.fetch(new Request('https://release.example'+route));assert.equal(response.status,303,route);assert.equal(response.headers.get('location'),'/login');assert.match(response.headers.get('cache-control'),/no-store/);}
+ for(const route of ['/portal','/portal/history','/admin','/admin/nodes','/admin/health','/admin/sharing']){const response=await app.fetch(new Request('https://release.example'+route));assert.equal(response.status,303,route);assert.equal(response.headers.get('location'),'/login');assert.match(response.headers.get('cache-control'),/no-store/);}
  assert.equal((await app.fetch(new Request('https://release.example/api/internal/ingest',{method:'POST'}))).status,401);
  const health=await app.fetch(new Request('https://release.example/api/health'));assert.equal(health.status,503);assert.deepEqual(await health.json(),{status:'configuration_required'});
  const files=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?files(path.join(dir,entry.name)):[path.join(dir,entry.name)]);

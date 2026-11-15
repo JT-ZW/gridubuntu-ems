@@ -3,7 +3,7 @@
  let {children,section='overview',email='',preview=false}=$props();let open=$state(false);let refreshing=$state(false);let refreshFailed=$state(false);
  async function refresh(){if(preview||refreshing)return;refreshing=true;try{await invalidateAll();refreshFailed=false;}catch{refreshFailed=true;}finally{refreshing=false;}}
  onMount(()=>{if(preview)return;const interval=setInterval(()=>{if(document.visibilityState==='visible')refresh();},60000);return()=>clearInterval(interval);});
- const navigation=[['overview','Overview','overview'],['clients','Clients & access','account'],['nodes','Energy nodes','system'],['communities','Communities','home'],['history','Energy history','history'],['operations','Alerts & operations','info'],['forecasting','Demand forecasting','history'],['sharing','Sharing policies','grid'],['settings','Settings & roles','lock'],['activity','Audit trail','history']];
+ const navigation=[['overview','Overview','overview'],['clients','Clients & access','account'],['nodes','Energy nodes','system'],['communities','Communities','home'],['health','System health','system'],['operations','Operations & enquiries','info'],['forecasting','Demand forecasting','history'],['sharing','Sharing policies','grid'],['settings','Settings & roles','lock'],['activity','Audit trail','history']];
  const link=s=>preview?'/admin-preview?view='+s:s==='overview'?'/admin':'/admin/'+s;
 </script>
 <svelte:window onkeydown={e=>{if(e.key==='Escape')open=false;}}/>
