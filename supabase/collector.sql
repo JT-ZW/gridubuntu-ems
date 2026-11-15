@@ -21,8 +21,7 @@ begin
  if not exists(select 1 from public.portal_profiles where id=p_actor and role='admin' and active) then raise exception 'admin_required' using errcode='42501';end if;
  select job_id into target from public.portal_collector_state where id=true;
  if target is null then raise exception 'collector_configuration_missing';end if;
- update cron.job set active=p_enabled where jobid=target;
- if not found then raise exception 'collector_configuration_missing';end if;
+ perform cron.alter_job(target,active:=p_enabled);
  update public.portal_collector_state set enabled=p_enabled where id=true;
  insert into public.portal_audit_events(actor_id,action,details) values(p_actor,'collector.schedule_changed',jsonb_build_object('enabled',p_enabled));
 end;$$;
