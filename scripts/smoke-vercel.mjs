@@ -13,6 +13,7 @@ if(process.platform==='win32'&&process.env.VERCEL!=='1'&&process.env.DEPLOY_TARG
  }
  for(const route of ['/portal','/portal/history','/admin','/admin/nodes','/admin/sharing']){const response=await app.fetch(new Request('https://release.example'+route));assert.equal(response.status,303,route);assert.equal(response.headers.get('location'),'/login');assert.match(response.headers.get('cache-control'),/no-store/);}
  assert.equal((await app.fetch(new Request('https://release.example/api/internal/ingest',{method:'POST'}))).status,401);
+ const health=await app.fetch(new Request('https://release.example/api/health'));assert.equal(health.status,503);assert.deepEqual(await health.json(),{status:'configuration_required'});
  const files=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?files(path.join(dir,entry.name)):[path.join(dir,entry.name)]);
  for(const file of files(path.join(root,'static')).filter(f=>/\.(js|html)$/.test(f)))assert.equal(/VICTRON_VRM_ACCESS_TOKEN|SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_DB_URL|INGESTION_SECRET|NODE_CREDENTIAL_ENCRYPTION_KEY|portal_connection_secrets/.test(fs.readFileSync(file,'utf8')),false,'Private configuration in public assets');
  console.log('Vercel artifact passed: prerendered marketing, SSR preview/login, protected client/admin routes, ingestion authorization and public-asset secret isolation.');

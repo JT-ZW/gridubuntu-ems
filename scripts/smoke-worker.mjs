@@ -7,6 +7,7 @@ for(const path of ['/portal','/portal/history','/portal/system','/portal/account
  const response=await worker.fetch(new Request('https://portal.example'+path),{ASSETS},{waitUntil(){}});assert.equal(response.status,303,path);assert.equal(response.headers.get('location'),'/login');assert.match(response.headers.get('cache-control'),/no-store/);console.log('Protected:',path);
 }
 const response=await worker.fetch(new Request('https://portal.example/api/internal/ingest',{method:'POST'}),{ASSETS},{waitUntil(){}});assert.equal(response.status,401);
+const health=await worker.fetch(new Request('https://portal.example/api/health'),{ASSETS},{waitUntil(){}});assert.equal(health.status,503);assert.deepEqual(await health.json(),{status:'configuration_required'});
 function files(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(dir+'/'+e.name):[dir+'/'+e.name]);}
 for(const file of files('dist/client').filter(p=>p.endsWith('.js')||p.endsWith('.html'))){assert.equal(/VICTRON_VRM_ACCESS_TOKEN|SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_DB_URL|INGESTION_SECRET|NODE_CREDENTIAL_ENCRYPTION_KEY|portal_connection_secrets/.test(fs.readFileSync(file,'utf8')),false,'Private configuration referenced in '+file);}
 console.log('Worker checks passed; no private environment references in client assets.');

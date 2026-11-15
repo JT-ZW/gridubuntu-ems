@@ -17,7 +17,7 @@ try{
  for(const tab of ['overview','history','equipment','connection','access','activity'])await expect('/admin/nodes/'+node+'?tab='+tab,admin.cookie);
  await expect('/admin/nodes/'+node,admin.cookie,{operation:'node.location',node_id:node,latitude:'-17.8252',longitude:'31.0335'});
  assert.equal(Number((await db.query('select latitude from public.portal_nodes where id=$1',[node])).rows[0].latitude),-17.8252);
- const map=await expect('/admin/communities',admin.cookie);assert.match(map.body,/Energy node locations/);assert.match(map.body,/-17.82520/);
+ const map=await expect('/admin/communities',admin.cookie);assert.match(map.body,/Energy node locations/);assert.match(map.body,/Terrain/);assert.match(map.body,/Street/);assert.match(map.body,/-17.82520/);
  await expect('/admin/nodes/'+node,admin.cookie,{operation:'node.location',node_id:node,latitude:'91',longitude:'31'},400);
  await expect('/admin/nodes/'+node,client.cookie,{operation:'node.location',node_id:node,latitude:'0',longitude:'0'},403);
  await expect('/admin/nodes/'+node,admin.cookie,{operation:'node.location',node_id:node,latitude:'',longitude:''});
@@ -33,7 +33,7 @@ try{
  await expect('/admin/sharing',admin.cookie,{...credit,request_id:randomUUID(),delta_kwh:'-11'},400);
  await expect('/admin/sharing',client.cookie,credit,403);
  const sharing=await expect('/admin/sharing',admin.cookie);assert.match(sharing.body,/Client limits (?:&amp;|&) energy credits/);assert.match(sharing.body,/datetime-local/);
- const onboard=await expect('/admin/nodes',admin.cookie);assert.match(onboard.body,/Validate (?:&amp;|&) register Victron node/);
+ const onboard=await expect('/admin/nodes',admin.cookie);assert.match(onboard.body,/Validate (?:&amp;|&) register SunSynk node/);
  await expect('/admin/nodes',client.cookie,{operation:'node.onboard'},403);
  await expect('/admin/settings',admin.cookie,{operation:'admin.access',user_id:client.id,role:'admin',active:'true',confirmed:'yes'});await expect('/admin',client.cookie);await expect('/admin/settings',admin.cookie,{operation:'admin.access',user_id:client.id,role:'client',active:'true',confirmed:'yes'});await expect('/admin',client.cookie,null,403);
  await expect('/admin/clients',admin.cookie,{operation:'client.access',user_id:client.id,active:'false'});await expect('/portal',client.cookie,null,303);
